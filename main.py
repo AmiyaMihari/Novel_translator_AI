@@ -40,12 +40,18 @@ if status:
                 break
         selected_model = st.sidebar.selectbox("Modelo de IA", model_names, index=default_index)
         
+        # Toggle for thinking mode
+        st.sidebar.markdown("### ⚡ Opciones del Modelo")
+        disable_thinking = st.sidebar.checkbox("Desactivar razonamiento (Modo Rápido)", value=True, help="Si usas DeepSeek o Qwen, esto apaga el modo 'pensamiento' para traducir mucho más rápido.")
+        
     else:
         st.sidebar.warning("No se encontraron modelos. Descarga uno con 'ollama pull <modelo>'")
         selected_model = None
+        disable_thinking = True
 else:
     st.sidebar.error(msg)
     selected_model = None
+    disable_thinking = True
 
 st.sidebar.markdown("---")
 st.sidebar.header("📖 Diccionario / Memoria")
@@ -114,7 +120,7 @@ if uploaded_file is not None:
                     st.text(chunk)
                 
                 if selected_model:
-                    translated_text = translate_chunk(chunk, source_lang, target_lang, dict_context, model_name=selected_model)
+                    translated_text = translate_chunk(chunk, source_lang, target_lang, dict_context, model_name=selected_model, disable_thinking=disable_thinking)
                 else:
                     translated_text = "Error: No hay modelo seleccionado."
                     
