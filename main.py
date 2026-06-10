@@ -2,6 +2,8 @@ import streamlit as st
 import os
 import tempfile
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Add the parent directory to sys.path to import local modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -52,6 +54,11 @@ else:
     st.sidebar.error(msg)
     selected_model = None
     disable_thinking = True
+
+st.sidebar.markdown("---")
+st.sidebar.header("⚡ Rendimiento")
+num_workers = st.sidebar.slider("Traducciones en paralelo", 1, 8, 4, help="Número de bloques a traducir simultáneamente. Debe coincidir con la variable OLLAMA_NUM_PARALLEL de tu servidor Ollama.")
+st.sidebar.info("💡 Nota: Para que el paralelismo sea efectivo, asegúrate de iniciar Ollama con OLLAMA_NUM_PARALLEL ajustado. (Ej. `OLLAMA_NUM_PARALLEL=4 ollama serve`)")
 
 st.sidebar.markdown("---")
 st.sidebar.header("📖 Diccionario / Memoria")
@@ -109,30 +116,46 @@ if uploaded_file is not None:
             progress_bar = st.progress(0)
             status_text = st.empty()
             
-            translated_chunks = []
+            translated_chunks = [None] * len(chunks)
             dict_context = get_dictionary_context(source_lang, target_lang)
             
-            for i, chunk in enumerate(chunks):
-                status_text.text(f"Traduciendo bloque {i+1} de {len(chunks)}...")
-                
-                # Show current chunk
-                with st.expander(f"Bloque {i+1} (Original)", expanded=False):
-                    st.text(chunk)
-                
-                if selected_model:
-                    translated_text = translate_chunk(chunk, source_lang, target_lang, dict_context, model_name=selected_model, disable_thinking=disable_thinking)
-                else:
-                    translated_text = "Error: No hay modelo seleccionado."
+            def worker(index, chunk_text):
+                try:
+                    if selected_model:
+                        res = translate_chunk(chunk_text, source_lang, target_lang, dict_context, model_name=selected_model, disable_thinking=disable_thinking)
+                        return index, res
+                    else:
+                        return index, "Error: No hay modelo seleccionado."
+                except Exception as e:
+                    return index, f"Error en bloque {index+1}: {str(e)}"
                     
-                translated_chunks.append(translated_text)
+            start_time = time.time()
+            completed = 0
+            
+            status_text.text(f"Iniciando traducción en paralelo ({num_workers} hilos)...")
+            
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                futures = {executor.submit(worker, i, chunk): i for i, chunk in enumerate(chunks)}
                 
+                for future in as_completed(futures):
+                    idx, result = future.result()
+                    translated_chunks[idx] = result
+                    completed += 1
+                    
+                    elapsed = time.time() - start_time
+                    eta = (elapsed / completed) * (len(chunks) - completed) if completed > 0 else 0
+                    progress_bar.progress(completed / len(chunks))
+                    status_text.text(f"Traduciendo... {completed}/{len(chunks)} completados. ETA: {int(eta)}s")
+            
+            status_text.text("✅ Traducción completada! Renderizando vista previa...")
+            
+            # Mostrar resultados en orden tras finalizar los hilos
+            for i, (orig, trans) in enumerate(zip(chunks, translated_chunks)):
+                with st.expander(f"Bloque {i+1} (Original)", expanded=False):
+                    st.text(orig)
                 with st.expander(f"Bloque {i+1} (Traducción)", expanded=True):
-                    st.write(translated_text)
-                
-                # Update progress
-                progress = (i + 1) / len(chunks)
-                progress_bar.progress(progress)
-                
+                    st.write(trans)
+            
             status_text.text("✅ Traducción completada! Preparando archivo...")
             
             # Combine translation and offer download

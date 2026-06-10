@@ -20,6 +20,9 @@ TEXT TO TRANSLATE:
     options = {'num_ctx': 4096, 'num_predict': 2048}
 
     try:
+        # Create a fresh client instance for thread safety
+        client = ollama.Client()
+        
         # First attempt: Try using the top-level 'think' parameter if disable_thinking is True
         kwargs = {
             'model': model_name,
@@ -33,12 +36,12 @@ TEXT TO TRANSLATE:
             kwargs['think'] = False
 
         try:
-            response = ollama.chat(**kwargs)
+            response = client.chat(**kwargs)
         except Exception as e:
             # If the specific model or older ollama version rejects the 'think' parameter, fallback without it
             if 'think' in kwargs:
                 del kwargs['think']
-                response = ollama.chat(**kwargs)
+                response = client.chat(**kwargs)
             else:
                 raise e
         
