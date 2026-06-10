@@ -1,6 +1,6 @@
 import ollama
 
-def translate_chunk(text, source_lang, target_lang, dictionary_context="", model_name='gemma4:26b', num_gpu=None, num_ctx=None):
+def translate_chunk(text, source_lang, target_lang, dictionary_context="", model_name='gemma4:26b'):
     """
     Translates a chunk of text using the selected local Ollama model.
     """
@@ -13,12 +13,6 @@ Do not add any additional comments, notes, or explanations. Only output the tran
 {dictionary_context}
 """
 
-    options = {}
-    if num_gpu is not None:
-        options['num_gpu'] = num_gpu
-    if num_ctx is not None:
-        options['num_ctx'] = num_ctx
-
     try:
         response = ollama.chat(model=model_name, messages=[
             {
@@ -29,7 +23,7 @@ Do not add any additional comments, notes, or explanations. Only output the tran
                 'role': 'user',
                 'content': text
             }
-        ], options=options)
+        ])
         return response['message']['content']
     except Exception as e:
         return f"Error during translation: {str(e)}"

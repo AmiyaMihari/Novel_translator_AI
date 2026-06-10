@@ -22,27 +22,27 @@ def parse_epub(file_path):
                 
     return chapters_text
 
-def chunk_text(text, target_words=1000):
+def chunk_text(text, target_chars=3000):
     """
-    Splits text into chunks of approximately `target_words` words,
+    Splits text into chunks of approximately `target_chars` characters,
     trying to split at paragraph or sentence boundaries.
     """
     paragraphs = text.split('\n')
     chunks = []
     current_chunk = []
-    current_word_count = 0
+    current_char_count = 0
     
     for paragraph in paragraphs:
-        word_count = len(paragraph.split())
+        char_count = len(paragraph)
         
-        if current_word_count + word_count > target_words and current_chunk:
+        if current_char_count + char_count > target_chars and current_chunk:
             # Save current chunk and start a new one
             chunks.append('\n'.join(current_chunk))
             current_chunk = [paragraph]
-            current_word_count = word_count
+            current_char_count = char_count
         else:
             current_chunk.append(paragraph)
-            current_word_count += word_count
+            current_char_count += char_count
             
     if current_chunk:
         chunks.append('\n'.join(current_chunk))
@@ -58,12 +58,12 @@ def process_document(file_path):
         chapters = parse_epub(file_path)
         all_chunks = []
         for chapter in chapters:
-            chunks = chunk_text(chapter, target_words=1000)
+            chunks = chunk_text(chapter, target_chars=3000)
             all_chunks.extend(chunks)
         return all_chunks
     elif file_path.lower().endswith('.txt'):
         with open(file_path, 'r', encoding='utf-8') as f:
             text = f.read()
-        return chunk_text(text, target_words=1000)
+        return chunk_text(text, target_chars=3000)
     else:
         raise ValueError("Unsupported file format. Only .epub and .txt are supported for now.")

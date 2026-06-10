@@ -40,21 +40,12 @@ if status:
                 break
         selected_model = st.sidebar.selectbox("Modelo de IA", model_names, index=default_index)
         
-        st.sidebar.markdown("### ⚡ Rendimiento (GPU/RAM)")
-        st.sidebar.caption("Ajusta esto si usas un modelo pesado (como gemma4:26b) y te da error de CUDA (out of memory).")
-        num_gpu = st.sidebar.slider("Capas en GPU (num_gpu)", min_value=0, max_value=80, value=20, help="Reduce este número para forzar el uso de la memoria RAM.")
-        num_ctx = st.sidebar.select_slider("Contexto (num_ctx)", options=[1024, 2048, 4096, 8192], value=4096, help="Menor contexto consume menos VRAM.")
-        
     else:
         st.sidebar.warning("No se encontraron modelos. Descarga uno con 'ollama pull <modelo>'")
         selected_model = None
-        num_gpu = None
-        num_ctx = None
 else:
     st.sidebar.error(msg)
     selected_model = None
-    num_gpu = None
-    num_ctx = None
 
 st.sidebar.markdown("---")
 st.sidebar.header("📖 Diccionario / Memoria")
@@ -123,7 +114,7 @@ if uploaded_file is not None:
                     st.text(chunk)
                 
                 if selected_model:
-                    translated_text = translate_chunk(chunk, source_lang, target_lang, dict_context, model_name=selected_model, num_gpu=num_gpu, num_ctx=num_ctx)
+                    translated_text = translate_chunk(chunk, source_lang, target_lang, dict_context, model_name=selected_model)
                 else:
                     translated_text = "Error: No hay modelo seleccionado."
                     
