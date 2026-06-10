@@ -1,0 +1,5 @@
+streamlit
+EbookLib
+beautifulsoup4
+ollama
+fpdf2
